@@ -1,16 +1,18 @@
 apply plugin: 'java'
 apply plugin: 'application'
+mainClassName = 'Other.ssh.JavaSSHTest'
 
 repositories {
     mavenCentral()
 }
 
 dependencies {
-    compileOnly "org.projectlombok:lombok:1.16.18"
-    compile group: 'com.jcraft', name: 'jsch', version: '0.1.54'
-    compile group: 'log4j', name: 'log4j', version: '1.2.17'
-    compile group: 'opensymphony', name: 'quartz-all', version: '1.6.3'
     compile group: 'commons-io', name: 'commons-io', version: '2.6'
+    compile group: 'com.jcraft', name: 'jsch', version: '0.1.54'
+    compileOnly "org.projectlombok:lombok:1.16.18"
+    compileOnly group: 'log4j', name: 'log4j', version: '1.2.17'
+    compileOnly group: 'org.quartz-scheduler', name: 'quartz', version: '2.2.3'
+    compileOnly group: 'org.quartz-scheduler', name: 'quartz-jobs', version: '2.2.3'
 }
 
 sourceSets {
@@ -18,5 +20,22 @@ sourceSets {
         java {
             srcDir 'src'
         }
+    }
+}
+sourceSets {
+    main {
+        java {
+            include 'Other/ssh/**'
+        }
+    }
+}
+
+jar {
+    manifest {
+        attributes "Main-Class": "Other.ssh.JavaSSHTest"
+    }
+
+    from {
+        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
     }
 }
