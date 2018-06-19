@@ -18,6 +18,7 @@ public class SSHManager {
     private String password;
     private Session session;
     private int timeout;
+    private JSch jSch;
 
     public SSHManager(String username, String ip) {
         this(username, ip, 22, "", 10000);
@@ -36,10 +37,11 @@ public class SSHManager {
     }
 
     private void connect() throws JSchException {
-        JSch jSch = new JSch();
+        jSch = new JSch();
 //            jSch.addIdentity("~/.ssh/id_rsa");
         session = jSch.getSession(username, ip, port);
         session.setPassword(password);
+        session.setPortForwardingL(2222, "11.22.33.44", 22);
         session.setConfig("StrictHostKeyChecking", "no");
         session.connect(timeout);
     }
@@ -50,7 +52,13 @@ public class SSHManager {
         try {
             connect();
 
-            Channel channel = session.openChannel("exec");
+            session.openChannel("direct-tcpip");
+            Session secondSession = jSch.getSession(username, "localhost", 2222);
+            secondSession.setPassword("zhu88jie");
+            secondSession.setConfig("StrictHostKeyChecking", "no");
+            secondSession.connect();
+
+            Channel channel = secondSession.openChannel("exec");
             ((ChannelExec) channel).setCommand(command);
             InputStream commandOutput = channel.getInputStream();
             InputStream commandErrOutput = channel.getExtInputStream();
@@ -59,6 +67,8 @@ public class SSHManager {
             stdout = IOUtils.toString(commandOutput, StandardCharsets.UTF_8);
             stderr = IOUtils.toString(commandErrOutput, StandardCharsets.UTF_8);
             channel.disconnect();
+            secondSession.disconnect();
+            session.disconnect();
         } catch (IOException | JSchException e) {
             e.printStackTrace();
             return Optional.empty();
