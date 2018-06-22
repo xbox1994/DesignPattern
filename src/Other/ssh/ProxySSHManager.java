@@ -1,23 +1,27 @@
 package Other.ssh;
 
 
-import com.jcraft.jsch.*;
-import org.apache.commons.io.IOUtils;
+import com.jcraft.jsch.JSchException;
+import com.jcraft.jsch.Session;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.ServerSocket;
-import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.Random;
 
+
+/**
+ * Warning: You must make sure you have configured ssh no password login between proxy and destination by yourself.
+ * <p>
+ * This manager will build the ssh tunnel between local server and proxy, and connect the local server port to ssh into destination.
+ */
+
 public class ProxySSHManager extends SSHManager {
     protected String usernameProxy;
-    protected String passwordProxy;
-    protected String identifyKeyProxy;
     protected String ipProxy;
     protected int portProxy;
     protected String identifyTypeProxy;
+    protected String identifyStringProxy;
 
     public ProxySSHManager(String username, String identifyString, String ip, int port, String identifyType,
                            String usernameProxy, String identifyStringProxy, String ipProxy, int portProxy, String identifyTypeProxy) {
@@ -26,19 +30,10 @@ public class ProxySSHManager extends SSHManager {
         this.ipProxy = ipProxy;
         this.portProxy = portProxy;
         this.identifyTypeProxy = identifyTypeProxy;
-        switch (identifyTypeProxy) {
-            case IDENTIFY_PASSWORD:
-                this.passwordProxy = identifyStringProxy;
-                break;
-            case IDENTIFY_KEY:
-                this.identifyKeyProxy = identifyStringProxy;
-                break;
-            case IDENTIFY_NONE:
-                break;
-        }
+        this.identifyStringProxy = identifyStringProxy;
     }
 
-    private static int getAvailablePort() {
+    private static int getLocalAvailablePort() {
         int port;
         do {
             port = new Random().nextInt(20000) + 10000;
@@ -57,50 +52,23 @@ public class ProxySSHManager extends SSHManager {
     }
 
     public Optional<SSHOutput> sendCommand(String command) {
-        String stdout;
-        String stderr;
         try {
-            jSch = new JSch();
-            if (identifyTypeProxy.equals(IDENTIFY_KEY)) {
-                jSch.addIdentity("identifyKeyName", identifyKeyProxy.getBytes(), null, null);
-            }
-            Session sessionProxy = jSch.getSession(usernameProxy, ipProxy, portProxy);
-            if (identifyTypeProxy.equals(IDENTIFY_PASSWORD)) {
-                sessionProxy.setPassword(passwordProxy);
-            }
-            int availablePort = getAvailablePort();
-            sessionProxy.setPortForwardingL(availablePort, ip, port);
-            sessionProxy.setConfig("StrictHostKeyChecking", "no");
+            // build server local ssh tunnel between server and proxy
+            int serverLocalSSHTunnelPort = getLocalAvailablePort();
+            Session sessionProxy = createBaseSession(usernameProxy, identifyTypeProxy, identifyStringProxy, ipProxy, portProxy);
+            sessionProxy.setPortForwardingL(serverLocalSSHTunnelPort, ip, port);
             sessionProxy.connect(timeout);
 
-            jSch.removeAllIdentity();
-            if (identifyType.equals(IDENTIFY_KEY)) {
-                jSch.addIdentity("identifyKeyProxyName", identifyKey.getBytes(), null, null);
-            }
-            Session sessionDestination = jSch.getSession(username, "127.0.0.1", availablePort);
-            if (identifyType.equals(IDENTIFY_PASSWORD)) {
-                sessionDestination.setPassword(password);
-            }
-            sessionDestination.setConfig("StrictHostKeyChecking", "no");
+            // ssh into local ssh tunnel to connect destination
+            Session sessionDestination = createBaseSession(username, identifyType, identifyString, "127.0.0.1", serverLocalSSHTunnelPort);
             sessionDestination.connect(timeout);
 
-            Channel execChannel = sessionDestination.openChannel("exec");
-            ((ChannelExec) execChannel).setCommand(command);
-            InputStream commandOutput = execChannel.getInputStream();
-            InputStream commandErrOutput = execChannel.getExtInputStream();
-            execChannel.connect();
-
-            stdout = IOUtils.toString(commandOutput, StandardCharsets.UTF_8);
-            stderr = IOUtils.toString(commandErrOutput, StandardCharsets.UTF_8);
-
-            execChannel.disconnect();
-            sessionDestination.disconnect();
+            Optional<SSHOutput> sshOutput = getSSHOutput(command, sessionDestination);
             sessionProxy.disconnect();
+            return sshOutput;
         } catch (IOException | JSchException e) {
             e.printStackTrace();
             return Optional.empty();
         }
-
-        return Optional.of(new SSHOutput(stdout, stderr));
     }
 }
