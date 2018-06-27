@@ -20,12 +20,24 @@ class TreeNode {
         root.right = invertNode(temp);
         return root;
     }
+//    另一种写法
+//    public TreeNode invertNode(TreeNode root) {
+//        if (root == null) {
+//            return null;
+//        }
+//        TreeNode temp = root.left;
+//        root.left = root.right;
+//        root.right = temp;
+//        invertNode(root.left);
+//        invertNode(root.right);
+//        return root;
+//    }
 
     public void printTreeNode() {
         LinkedList<TreeNode> queue = new LinkedList<>();
         queue.add(this);
 
-        TreeNode currentLineRightestNode = this;
+        TreeNode currentLineRightestNode = new TreeNode(this.value);
         TreeNode nextLineRightestNode = null;
 
         while (!queue.isEmpty()) {
