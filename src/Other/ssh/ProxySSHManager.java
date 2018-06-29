@@ -5,16 +5,7 @@ import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 
 import java.io.IOException;
-import java.net.ServerSocket;
 import java.util.Optional;
-import java.util.Random;
-
-
-/**
- * Warning: You must make sure you have configured ssh no password login between proxy and destination by yourself.
- * <p>
- * This manager will build the ssh tunnel between local server and proxy, and connect the local server port to ssh into destination.
- */
 
 public class ProxySSHManager extends SSHManager {
     protected String usernameProxy;
@@ -33,42 +24,25 @@ public class ProxySSHManager extends SSHManager {
         this.identifyStringProxy = identifyStringProxy;
     }
 
-    private static int getLocalAvailablePort() {
-        int port;
-        do {
-            port = new Random().nextInt(20000) + 10000;
-        } while (!isPortAvailable(port));
-
-        return port;
-    }
-
-    private static boolean isPortAvailable(final int port) {
-        try (ServerSocket ss = new ServerSocket(port)) {
-            ss.setReuseAddress(true);
-            return true;
-        } catch (final IOException ignored) {
-        }
-        return false;
-    }
-
     public Optional<SSHOutput> sendCommand(String command) {
+        Session sessionProxy = null;
         try {
-            // build server local ssh tunnel between server and proxy
-            int serverLocalSSHTunnelPort = getLocalAvailablePort();
-            Session sessionProxy = createBaseSession(usernameProxy, identifyTypeProxy, identifyStringProxy, ipProxy, portProxy);
-            sessionProxy.setPortForwardingL(serverLocalSSHTunnelPort, ip, port);
+            sessionProxy = createBaseSession(usernameProxy, identifyTypeProxy, identifyStringProxy, ipProxy, portProxy);
             sessionProxy.connect(timeout);
-
-            // ssh into local ssh tunnel to connect destination
-            Session sessionDestination = createBaseSession(username, identifyType, identifyString, "127.0.0.1", serverLocalSSHTunnelPort);
-            sessionDestination.connect(timeout);
-
-            Optional<SSHOutput> sshOutput = getSSHOutput(command, sessionDestination);
-            sessionProxy.disconnect();
-            return sshOutput;
+            String sshCommand = "ssh" +
+                    " -o StrictHostKeyChecking=no" +
+                    " -o ServerAliveInterval=" + SSH_KEEP_ALIVE_INTERVAL_SECOND +
+                    " -o ServerAliveCountMax=" + SSH_KEEP_ALIVE_COUNT_MAX_SECOND +
+                    " -p" + port +
+                    " " + username + "@" + ip + " ";
+            return getSSHOutput(sshCommand + command, sessionProxy);
         } catch (IOException | JSchException e) {
             e.printStackTrace();
             return Optional.empty();
+        } finally {
+            if (sessionProxy != null) {
+                sessionProxy.disconnect();
+            }
         }
     }
 }

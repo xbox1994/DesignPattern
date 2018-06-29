@@ -30,6 +30,7 @@ public abstract class SSHManager {
         this.port = port;
         this.identifyType = identifyType;
         this.identifyString = identifyString;
+        jSch = new JSch();
     }
 
     public abstract Optional<SSHOutput> sendCommand(String command);
@@ -43,7 +44,7 @@ public abstract class SSHManager {
                                         String identifyString,
                                         String ip,
                                         int port) throws JSchException {
-        jSch = new JSch();
+        jSch.removeAllIdentity();
         Session baseSession = jSch.getSession(username, ip, port);
         addSessionIdentity(baseSession, identifyType, identifyString);
         return baseSession;
