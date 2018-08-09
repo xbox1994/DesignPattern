@@ -11,9 +11,9 @@ public class JavaSSHTest {
 //        String connectionIP = args[1];
 
 
-//        SSHManager instance = new DirectSSHManager("ubuntu", "~/.ssh/id_rsa", "172.31.30.122", 22, SSHManager.IDENTITY_KEY_FILE_PATH);
-        SSHManager instance = new TunnelSSHManager("ubuntu", "~/.ssh/id_rsa", "11.22.33.44", 22, SSHManager.IDENTITY_KEY_FILE_PATH,
-                "ubuntu", "~/.ssh/id_rsa", "172.31.30.122", 22, SSHManager.IDENTITY_KEY_FILE_PATH);
+//        SSHManager instance = hotswap DirectSSHManager("ubuntu", "~/.ssh/id_rsa", "172.31.30.122", 22, SSHManager.IDENTITY_KEY_FILE_PATH);
+        SSHManager instance = new ProxySSHManager("root", "~/.ssh/id_rsa", "10.120.37.5", 22, SSHManager.IDENTITY_KEY_FILE_PATH,
+                "root", "~/.ssh/id_rsa", "139.198.188.74", 22, SSHManager.IDENTITY_KEY_FILE_PATH);
         SSHOutput output = instance.sendCommand("ifconfig").orElseThrow(Exception::new);
         System.out.println("stdout: " + output.getStdout());
         System.err.println("stderr: " + output.getStderr());

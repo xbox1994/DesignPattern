@@ -57,7 +57,7 @@ public class BCryptTest {
 
     /**
      * A simple test case for the main method, verify that a pre-generated test hash verifies successfully
-     * for the password it represents, and also generate a new hash and ensure that the new hash verifies
+     * for the password it represents, and also generate a hotswap hash and ensure that the hotswap hash verifies
      * just the same.
      */
     public static void main(String[] args) {

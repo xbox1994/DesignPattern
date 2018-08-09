@@ -76,4 +76,15 @@ public abstract class SSHManager {
         session.disconnect();
         return Optional.of(new SSHOutput(stdout, stderr));
     }
+
+    protected Optional<SSHOutput> getSSHOutput(String command, Channel channel) throws JSchException, IOException {
+        ((ChannelExec) channel).setCommand(command);
+        InputStream commandOutput = channel.getInputStream();
+        InputStream commandErrOutput = channel.getExtInputStream();
+        channel.connect();
+        String stdout = IOUtils.toString(commandOutput, StandardCharsets.UTF_8);
+        String stderr = IOUtils.toString(commandErrOutput, StandardCharsets.UTF_8);
+        channel.disconnect();
+        return Optional.of(new SSHOutput(stdout, stderr));
+    }
 }
