@@ -59,11 +59,11 @@ public class IPMIUtil {
     }
 
     public static void main(String[] args) {
-        IPMIUtil util = new IPMIUtil("172.30.30.22", "ADMIN", "ADMIN");
-//        IPMIUtil util = new IPMIUtil("172.30.20.28", "admin", "admin");
+//        IPMIUtil util = new IPMIUtil("172.30.30.22", "ADMIN", "ADMIN");
+        IPMIUtil util = new IPMIUtil("172.30.20.28", "admin", "admin");
         try {
-//            Map<String, String> sensorMap = util.getSensorMap();
-//            System.out.println(sensorMap);
+            List<SensorInfo> sensorMap = util.getSensorMap();
+            System.out.println(sensorMap);
 //            Boolean isPowerOnB = util.isPowerOn();
 //            System.out.println(isPowerOnB);
 //            if (isPowerOnB != null) {
@@ -75,8 +75,6 @@ public class IPMIUtil {
 //            if (pi != null) {
 //                System.out.println(pi.getProductSerialNumber() + " " + pi.getProductModelNumber());
 //            }
-            util.power(PowerCommand.PowerDown);
-
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -204,8 +202,8 @@ public class IPMIUtil {
         return null;
     }
 
-    public Map<String, String> getSensorMap() throws Exception {
-        Map<String, String> sensorNameToValue = new HashMap<>();
+    public List<SensorInfo> getSensorMap() throws Exception {
+        Map<String, SensorInfo> nameToSensorInfo = new HashMap<>();
 
         // ID 0指示SDR中的第一个记录。下一个IDS可以从记录中检索出来——它们被组织在一个列表中，没有BMC命令来获取所有这些ID。
         nextRecId = 0;
@@ -238,13 +236,13 @@ public class IPMIUtil {
                     FullSensorRecord fsr = (FullSensorRecord) record;
                     recordReadingId = TypeConverter.byteToInt(fsr.getSensorNumber());
                     String sensorName = fsr.getName();
-                    sensorNameToValue.put(sensorName, null);
+                    nameToSensorInfo.put(sensorName, new SensorInfo(sensorName, null, null));
 
                 } else if (record instanceof CompactSensorRecord) {
                     CompactSensorRecord csr = (CompactSensorRecord) record;
                     recordReadingId = TypeConverter.byteToInt(csr.getSensorNumber());
                     String sensorName = csr.getName();
-                    sensorNameToValue.put(sensorName, null);
+                    nameToSensorInfo.put(sensorName, new SensorInfo(sensorName, null, null));
                 }
 
                 // 如果有记录，我们会得到响应数据
@@ -258,11 +256,10 @@ public class IPMIUtil {
                             FullSensorRecord rec = (FullSensorRecord) record;
                             // 解析传感器读取的记录信息
                             String sensorName = rec.getName();
-                            String sensorValue = data2.getSensorReading(rec) + " " + rec.getSensorBaseUnit().toString()
-                                    + (rec.getRateUnit() != RateUnit.None ? " per " + rec.getRateUnit() : "");
-                            sensorNameToValue.put(sensorName, sensorValue);
-                            System.out.println("传感器名称：" + sensorName);
-                            System.out.println("解析传感器读取的记录信息:" + sensorValue);
+                            String sensorValue = data2.getSensorReading(rec) + " " + (rec.getSensorBaseUnit().equals(SensorUnit.Unspecified) ? (rec.getRateUnit() == RateUnit.None ? "percent" : "") : rec.getSensorBaseUnit().toString());
+                            nameToSensorInfo.put(sensorName, new SensorInfo(sensorName, sensorValue, data2.getSensorState().toString()));
+                            System.out.println("完全型传感器：" + sensorName);
+                            System.out.println("记录信息:" + sensorValue);
                         }
                         if (record instanceof CompactSensorRecord) {
                             CompactSensorRecord rec = (CompactSensorRecord) record;
@@ -274,9 +271,9 @@ public class IPMIUtil {
                                 sensorValue.append(event).append(", ");
                             }
                             String sensorName = rec.getName();
-                            sensorNameToValue.put(sensorName, sensorValue.toString());
-                            System.out.println("传感器名称：" + sensorName);
-                            System.out.println("解析传感器读取的记录信息：" + sensorValue);
+                            nameToSensorInfo.put(sensorName, new SensorInfo(sensorName, null, sensorValue.toString().length() == 0 ? "Ok" : sensorValue.toString().substring(0, sensorValue.length() - 2)));
+                            System.out.println("紧凑型传感器：" + sensorName);
+                            System.out.println("记录信息：" + sensorValue);
                         }
                     }
                 } catch (IPMIException e) {
@@ -304,7 +301,7 @@ public class IPMIUtil {
         connector.closeConnection(handle);
         connector.tearDown();
 
-        return sensorNameToValue;
+        return new ArrayList<>(nameToSensorInfo.values());
     }
 
     public ConnectionHandle startSession(IpmiConnector connector, InetAddress address, String username, String password, String bmcKey, PrivilegeLevel privilegeLevel) throws Exception {
