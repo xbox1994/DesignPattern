@@ -16,7 +16,6 @@ public class AES {
             cipher.init(Cipher.ENCRYPT_MODE, skeySpec, iv);
 
             byte[] encrypted = cipher.doFinal(value.getBytes());
-            System.out.println("encrypted string: " + Base64.encodeBase64String(encrypted));
 
             return Base64.encodeBase64String(encrypted);
         } catch (Exception ex) {
@@ -48,6 +47,11 @@ public class AES {
         String key = "8b7de535e112bf6833e7e3ecbc7343b9"; // 128 bit key
         String initVector = "4b41fc6a27b52dea"; // 16 bytes IV
 
-        System.out.println(decrypt(key, initVector, encrypt(key, initVector, "wocaonima")));
+        String password = "我的密码";
+        System.out.println("加密之前的密码: " + password);
+        String encrypted = encrypt(key, initVector, password);
+        System.out.println("加密之后的密码: " + encrypted);
+        String decrypted = decrypt(key, initVector, encrypted);
+        System.out.println("解密之后的密码: " + decrypted);
     }
 }
