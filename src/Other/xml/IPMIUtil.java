@@ -59,11 +59,12 @@ public class IPMIUtil {
     }
 
     public static void main(String[] args) {
-//        IPMIUtil util = new IPMIUtil("172.30.30.22", "ADMIN", "ADMIN");
-        IPMIUtil util = new IPMIUtil("172.30.20.28", "admin", "admin");
         try {
-            List<SensorInfo> sensorMap = util.getSensorMap();
-            System.out.println(sensorMap);
+        IPMIUtil util = new IPMIUtil("172.30.30.22", "ADMIN", "ADMIN");
+//            IPMIUtil util = new IPMIUtil("172.30.20.28", "admin", "admin");
+//            IPMIUtil util = new IPMIUtil("1.1.1.1", "admin", "admin");
+//            List<SensorInfo> sensorMap = util.getSensorMap();
+//            System.out.println(sensorMap);
 //            Boolean isPowerOnB = util.isPowerOn();
 //            System.out.println(isPowerOnB);
 //            if (isPowerOnB != null) {
@@ -71,10 +72,10 @@ public class IPMIUtil {
 //            } else {
 //                throw new Exception("连不上");
 //            }
-//            ProductInfo pi = util.getProductInfo();
-//            if (pi != null) {
-//                System.out.println(pi.getProductSerialNumber() + " " + pi.getProductModelNumber());
-//            }
+            ProductInfo pi = util.getProductInfo();
+            if (pi != null) {
+                System.out.println(pi.getProductSerialNumber() + " " + pi.getProductModelNumber());
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }

@@ -5,8 +5,14 @@ import org.apache.commons.codec.binary.Base64;
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import java.io.UnsupportedEncodingException;
+import java.math.BigInteger;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
-public class AES {
+public class AESUtil {
+    private final static String INIT_VECTOR = "4b41fc6a27b52dea"; // 16 bytes IV
+
     public static String encrypt(String key, String initVector, String value) {
         try {
             IvParameterSpec iv = new IvParameterSpec(initVector.getBytes("UTF-8"));
@@ -43,15 +49,25 @@ public class AES {
         return null;
     }
 
-    public static void main(String[] args) {
-        String key = "8b7de535e112bf6833e7e3ecbc7343b9"; // 128 bit key
-        String initVector = "4b41fc6a27b52dea"; // 16 bytes IV
+    public static void main(String[] args) throws NoSuchAlgorithmException, UnsupportedEncodingException {
+        String password = "wefwef";
+        MessageDigest m = MessageDigest.getInstance("MD5");
+        m.reset();
+        m.update(password.getBytes());
+        byte[] digest = m.digest();
+        BigInteger bigInt = new BigInteger(1, digest);
+        String hashtext = bigInt.toString(16);
+        while (hashtext.length() < 32) {
+            hashtext = "0" + hashtext;
+        }
 
-        String password = "我的密码";
+
+        String key = hashtext;
+        System.out.println(key);
         System.out.println("加密之前的密码: " + password);
-        String encrypted = encrypt(key, initVector, password);
+        String encrypted = encrypt(key, INIT_VECTOR, password);
         System.out.println("加密之后的密码: " + encrypted);
-        String decrypted = decrypt(key, initVector, encrypted);
+        String decrypted = decrypt(key, INIT_VECTOR, encrypted);
         System.out.println("解密之后的密码: " + decrypted);
     }
 }
