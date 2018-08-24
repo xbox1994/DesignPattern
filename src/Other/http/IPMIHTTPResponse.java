@@ -1,8 +1,12 @@
 package Other.http;
 
+import org.apache.http.cookie.Cookie;
+
+import java.util.List;
+
 public class IPMIHTTPResponse {
     private String body;
-    private String cookie;
+    private List<Cookie> cookie;
 
     public String getBody() {
         return body;
@@ -12,12 +16,15 @@ public class IPMIHTTPResponse {
         this.body = body;
     }
 
-    public String getCookie() {
+    public List<Cookie> getCookie() {
         return cookie;
     }
 
-    public void setCookie(String cookie) {
+    public void setCookie(List<Cookie> cookie) {
         this.cookie = cookie;
+    }
+
+    public IPMIHTTPResponse() {
     }
 
     @Override

@@ -15,6 +15,7 @@ import org.apache.http.conn.socket.PlainConnectionSocketFactory;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
+import org.apache.http.cookie.Cookie;
 import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
@@ -30,24 +31,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class HTTPUtil {
     public static void main(String[] args) throws IOException {
-//        String urlGetCookies = "https://172.30.20.28";
-//        IPMIHTTPResponse cookies = get(urlGetCookies, null, null);
-//        System.out.println(cookies);
-
-        String loginUrl = "https://172.30.20.28/cgi/login.cgi";
-        Map<String, String> params = new HashMap<>();
-        params.put("name", "admin");
-        params.put("pwd", "admin");
-
-//        params.put("encodedpwd", "YWRtaW4=");
-        Map<String, String> headers = new HashMap<>();
-        headers.put("Content-Type", "application/x-www-form-urlencoded");
-        IPMIHTTPResponse response = get(loginUrl, params, headers);
-        System.out.println(response);
+        getLoggedCookie();
 
 //        String url = "https://172.30.30.22/cgi/url_redirect.cgi?url_name=jnlp&url_type=jwsk";
 //        Map<String, String> headers1 = new HashMap<>();
@@ -56,15 +44,29 @@ public class HTTPUtil {
 //        System.out.println(response1);
     }
 
+    private static void getLoggedCookie() throws IOException {
+        String loginUrl = "https://172.30.20.28/cgi/login.cgi";
+        Map<String, String> params = new HashMap<>();
+        params.put("name", "admin");
+        params.put("pwd", "admin");
+        params.put("encodedpwd", "YWRtaW4=");
+
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Content-Type", "application/x-www-form-urlencoded");
+        IPMIHTTPResponse response = post(loginUrl, params, headers);
+        Map<String, String> cookies = response.getCookie().stream().collect(Collectors.toMap(Cookie::getName, Cookie::getValue));
+        System.out.println(cookies);
+    }
+
     public static IPMIHTTPResponse get(String uri, Map<String, String> params, Map<String, String> headers) throws IOException {
-        return run(buildGetUriRequest(uri, params), headers);
+        return run(buildGetUriRequest(uri, params, headers));
     }
 
     public static IPMIHTTPResponse post(String uri, Map<String, String> params, Map<String, String> headers) throws IOException {
-        return run(buildPostUriRequest(uri, params), headers);
+        return run(buildPostUriRequest(uri, params, headers));
     }
 
-    public static IPMIHTTPResponse run(HttpUriRequest httpUriRequest, Map<String, String> headers) throws IOException {
+    public static IPMIHTTPResponse run(HttpUriRequest httpUriRequest) throws IOException {
         String result;
 
         CookieStore cookieStore = new BasicCookieStore();
@@ -86,16 +88,10 @@ public class HTTPUtil {
                 .setSSLSocketFactory(sslConnectionSocketFactory)
                 .setDefaultCookieStore(cookieStore)
                 .setConnectionManager(cm).build();
-        if (headers != null) {
-            for (Map.Entry<String, String> entry : headers.entrySet()) {
-                httpUriRequest.addHeader(entry.getKey(), entry.getValue());
-            }
-        }
-
         HttpResponse httpResponse = client.execute(httpUriRequest);
         InputStream input = httpResponse.getEntity().getContent();
         IPMIHTTPResponse response = new IPMIHTTPResponse();
-        response.setCookie(cookieStore.getCookies().toString());
+        response.setCookie(cookieStore.getCookies());
         if (null != input) {
             try {
                 result = IOUtils.toString(input, "UTF-8");
@@ -107,13 +103,24 @@ public class HTTPUtil {
         return response;
     }
 
-    private static HttpUriRequest buildGetUriRequest(String uri, Map<String, String> params) throws UnsupportedEncodingException {
+    private static HttpUriRequest buildGetUriRequest(String uri, Map<String, String> params, Map<String, String> headers) throws UnsupportedEncodingException {
         String fullUri = buildUrlWithParams(uri, params);
-        return new HttpGet(fullUri);
+        HttpGet httpGet = new HttpGet(fullUri);
+        if (headers != null) {
+            for (Map.Entry<String, String> entry : headers.entrySet()) {
+                httpGet.addHeader(entry.getKey(), entry.getValue());
+            }
+        }
+        return httpGet;
     }
 
-    private static HttpUriRequest buildPostUriRequest(String uri, Map<String, String> params) throws UnsupportedEncodingException {
+    private static HttpUriRequest buildPostUriRequest(String uri, Map<String, String> params, Map<String, String> headers) throws UnsupportedEncodingException {
         HttpPost httpPost = new HttpPost(uri);
+        if (headers != null) {
+            for (Map.Entry<String, String> entry : headers.entrySet()) {
+                httpPost.addHeader(entry.getKey(), entry.getValue());
+            }
+        }
         List<NameValuePair> nameValuePairs = new ArrayList<>();
         params.forEach((key, value) -> nameValuePairs.add(new BasicNameValuePair(key, value)));
         httpPost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
