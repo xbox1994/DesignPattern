@@ -41,7 +41,7 @@ public class IntelHttpMocker extends ManagementConsoleHttpMocker {
 
     @Override
     public String getJnlpFile() throws IOException {
-        String url = "https://" + ip + "/cgi/url_redirect.cgi?url_name=jnlp&url_type=jwsk";
+        String url = "https://" + ip + "/cgi/url_redirect.cgi?url_name=jnlp&url_type=jwsk&lang_setting=English&host_addr="+ip;
         Map<String, String> header = new HashMap<>();
         String loggedSid = getLoggedSid();
         header.put("Cookie", "__Host-SID=" + loggedSid);
